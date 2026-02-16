@@ -1,0 +1,59 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+
+# env files (keep .env.example)
+.env*.local
+.env
+
+# testing
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+coverage/
+
+# build
+*.tsbuildinfo
+next-env.d.ts
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# dev screenshots & artifacts
+*.png
+*.jpg
+
+# temp / junk files
+nul
+npm
+temp_check.txt
+
+# personal data
+cv-test/
+
+# accidental directory names
+C:UsersaimiliosDesktopCareerAgWebAppsrclibauth/
+
+# test reports
+test-reports/
+
+# vercel
+.vercel/
+
+# docker (local dev)
+docker-compose.override.yml
+
+# Claude Code
+.claude/
+
+# Playwright MCP
+.playwright-mcp/

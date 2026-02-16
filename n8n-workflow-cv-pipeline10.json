@@ -1,0 +1,224 @@
+{
+  "name": "CV Pipeline - Parse PDF",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cv-parse",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -784,
+        144
+      ],
+      "id": "6d13253b-4647-4208-9c7c-80dcab2e7409",
+      "webhookId": "ffe5665e-33c2-4bc6-87fe-5a681adae7c1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Extract from File').first().json.text }}",
+        "options": {
+          "systemMessage": "=You are a professional CV/Resume parser AI. Your task is to extract structured information from   the CV text provided.\n\n  INSTRUCTIONS:\n  1. Analyze the CV text carefully and extract ALL relevant information\n  2. Return ONLY valid JSON - no markdown, no explanations, no extra text\n  3. If a field cannot be found, use empty array [] or empty string \"\"\n  4. Extract skills as individual items (e.g., \"Python\" not \"Python programming\")\n  5. For experience, include ALL positions found with complete details\n  6. For education, include degrees, certifications, and relevant courses\n\n  REQUIRED OUTPUT FORMAT (strict JSON):\n  {\n    \"skills\": [\"skill1\", \"skill2\"],\n    \"experience\": [\n      {\n        \"role\": \"Job Title\",\n        \"company\": \"Company Name\",\n        \"duration\": \"Start Date - End Date\",\n        \"description\": \"Key responsibilities and achievements\"\n      }\n    ],\n    \"education\": [\n      {\n        \"degree\": \"Degree Name\",\n        \"institution\": \"Institution Name\",\n        \"year\": \"Graduation Year\"\n      }\n    ],\n    \"summary\": \"2-3 sentence professional summary\"\n  }\n\n  IMPORTANT:\n  - Extract ALL skills mentioned (technical, soft skills, tools, frameworks)\n  - Include quantifiable achievements where mentioned\n  - If the CV is poorly formatted, do your best to extract information\n  - Return ONLY the JSON object, nothing else"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        16,
+        144
+      ],
+      "id": "70ed6f2e-d89c-42a2-866c-382174988d52",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        16,
+        416
+      ],
+      "id": "53553534-4938-42b4-b462-5f0bd8f2c2e9",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "5BRdtO35PaAkDWlp",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -288,
+        144
+      ],
+      "id": "bed2a9c1-58c5-4c85-994e-610501bd14c3",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.signedUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -560,
+        144
+      ],
+      "id": "1b2da1d4-4033-4a54-a901-7cd36c70cabf",
+      "name": "Download File"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the original webhook data and AI response\nconst webhookData = $('Webhook').first().json; const aiResponse =        \n  $input.first().json; const cvId = webhookData['body']['cvId']; let       \n  parsedData = {}; if (typeof aiResponse.output === 'string') { try {      \n  parsedData = JSON.parse(aiResponse.output); } catch (e) { parsedData = { \n  rawText: aiResponse.output }; } } else if (aiResponse.output) {\n  parsedData = aiResponse.output; } return [{ json: { type: 'cv-parsed',   \n  payload: { cvId: cvId, ...parsedData } } }];"
+      },
+      "name": "build callback playload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        144
+      ],
+      "id": "f3d76878-2ddd-4892-be75-af82e4034c94"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/webhooks/n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-n8n-webhook-secret",
+              "value": "n8n-career-agent-secret-2025"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: $json.type, payload: $json.payload }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        784,
+        144
+      ],
+      "id": "52ecb63b-9dfa-4bd6-93f2-a688407fcedf",
+      "name": "Send to App"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "build callback playload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "build callback playload": {
+      "main": [
+        [
+          {
+            "node": "Send to App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to App": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "3f199ac3-10f1-4cc7-9e9f-8ce6b8ebbb13",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "97cdaab89af73ebd5970b4d23e9d1859d7eb3b935c78db3eb6127ddba5b4902d"
+  },
+  "id": "XItbsvV2Gg5EFwkI",
+  "tags": []
+}

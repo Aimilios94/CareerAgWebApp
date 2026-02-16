@@ -1,0 +1,360 @@
+{
+  "name": "Job Search Pipeline (Apify)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "job-search",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        224
+      ],
+      "id": "bda7317b-0bda-43a0-bf9f-6753ec8102aa",
+      "webhookId": "c5160885-7947-4216-b986-eacadbe145d9"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Adapt Apify output to our app format\nconst items = $input.all();\n\n// Handle if Apify returns a dataset directly or runs\n// This code assumes the node returns the dataset items directly (default for Run + Sync)\n\nreturn items.map((item, index) => {\n    const job = item.json;\n    return {\n        id: job.id || `job-${index}`,\n        title: job.title,\n        company: job.companyName || 'Unknown',\n        location: job.location || 'Remote',\n        salary: job.salary || 'Not listed',\n        matchScore: Math.floor(Math.random() * (99 - 70) + 70), // Mock score\n        postedDate: job.postedAt || 'Recently',\n        link: job.url || job.applyUrl\n    };\n});"
+      },
+      "name": "Format Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        80
+      ],
+      "id": "e55bbd40-6281-4230-8d8c-e89adbbff2fa"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"matches\": {{$json}}\n}",
+        "options": {}
+      },
+      "name": "Respond to App",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        672,
+        336
+      ],
+      "id": "48491105-b739-4b07-bc96-8d569c6db287"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -80,
+        480
+      ],
+      "id": "59f61e4e-4b9a-473e-bec6-0eb53c45c92e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Adapt Apify output to our app format\nconst items = $input.all();\n\n// Handle if Apify returns a dataset directly or runs\n// This code assumes the node returns the dataset items directly (default for Run + Sync)\n\nreturn items.map((item, index) => {\n    const job = item.json;\n    return {\n        id: job.id || `job-${index}`,\n        title: job.title,\n        company: job.companyName || 'Unknown',\n        location: job.location || 'Remote',\n        salary: job.salary || 'Not listed',\n        matchScore: Math.floor(Math.random() * (99 - 70) + 70), // Mock score\n        postedDate: job.postedAt || 'Recently',\n        link: job.url || job.applyUrl\n    };\n});"
+      },
+      "name": "Format Results1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        512
+      ],
+      "id": "a8010e12-530f-4b44-af92-57552461a6b0"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -64,
+        96
+      ],
+      "id": "5ef89b10-4919-43f6-85e4-6b2c8397a8fa",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        336
+      ],
+      "id": "f1c23eac-e0ce-4831-878e-81f30c367225",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/webhooks/n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-n8n-webhook-secret",
+              "value": "n8n-career-agent-secret-2025"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"type\": \"job-matches\",\n    \"payload\": {\n      \"searchId\": \"{{ $('Webhook').first().json.body.searchId }}\",\n      \"userId\": \"{{ $('Webhook').first().json.body.userId }}\",\n      \"matches\": {{ $json }}\n    }\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        912,
+        336
+      ],
+      "id": "df49fa7e-86de-4b63-ae14-cd4799362dcf",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "resource": "Datasets",
+        "offset": {}
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        112
+      ],
+      "id": "57cfd500-fbe7-4282-b901-d2d4e04b8b40",
+      "name": "Get dataset items1",
+      "credentials": {
+        "apifyApi": {
+          "id": "QwDf6ttZYrhJGZu2",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Datasets",
+        "offset": {}
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        464
+      ],
+      "id": "fc66141a-f1a9-494e-b538-330842f27867",
+      "name": "Get dataset items",
+      "credentials": {
+        "apifyApi": {
+          "id": "QwDf6ttZYrhJGZu2",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "actorId": {
+          "__rl": true,
+          "value": "hMvNSpz3JnHgl5jkh",
+          "mode": "list",
+          "cachedResultName": "Indeed Scraper (misceres/indeed-scraper)",
+          "cachedResultUrl": "https://console.apify.com/actors/hMvNSpz3JnHgl5jkh/input"
+        },
+        "timeout": {}
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        432
+      ],
+      "id": "162e2c4c-c6fb-4ac7-a77b-17894aeeac23",
+      "name": "IndeedJobs",
+      "credentials": {
+        "apifyApi": {
+          "id": "QwDf6ttZYrhJGZu2",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "actorId": {
+          "__rl": true,
+          "value": "nopnOEWIYjLQfBqEO",
+          "mode": "list",
+          "cachedResultName": "Google Jobs Scraper (epctex/google-jobs-scraper)",
+          "cachedResultUrl": "https://console.apify.com/actors/nopnOEWIYjLQfBqEO/input"
+        },
+        "timeout": {}
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        112
+      ],
+      "id": "e8091c37-6563-4984-9784-ddedb339f42a",
+      "name": "google Jobs",
+      "credentials": {
+        "apifyApi": {
+          "id": "QwDf6ttZYrhJGZu2",
+          "name": "Apify account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Format Results": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "google Jobs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IndeedJobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Format Results1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Results1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Format Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Respond to App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to App": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get dataset items": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get dataset items1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IndeedJobs": {
+      "main": [
+        [
+          {
+            "node": "Get dataset items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google Jobs": {
+      "main": [
+        [
+          {
+            "node": "Get dataset items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "61ac21ba-87ee-4066-94b0-d79b909daaf7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "97cdaab89af73ebd5970b4d23e9d1859d7eb3b935c78db3eb6127ddba5b4902d"
+  },
+  "id": "9XymiuMOdK56GsKL",
+  "tags": []
+}
