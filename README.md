@@ -9,6 +9,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Stripe-Payments-635BFF?style=for-the-badge&logo=stripe&logoColor=white" alt="Stripe" />
   <img src="https://img.shields.io/badge/n8n-Automation-EA4B71?style=for-the-badge&logo=n8n&logoColor=white" alt="n8n" />
+  <img src="https://img.shields.io/badge/Docker-Container-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
   <img src="https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License" />
 </p>
@@ -98,6 +99,7 @@ CareerAg is a full-stack career management web application that helps profession
 ### DevOps & Infrastructure
 | Technology | Purpose |
 |------------|---------|
+| ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white) | Containerized n8n + PostgreSQL for workflow automation |
 | ![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white) | Frontend hosting, serverless API routes, CI/CD |
 | ![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white) | Version control & repository |
 | ![Vitest](https://img.shields.io/badge/Vitest-6E9F18?style=flat-square&logo=vitest&logoColor=white) | Unit & integration testing (541 tests) |
@@ -140,13 +142,14 @@ The application follows a serverless architecture with Supabase as the central d
 └───────┼──────────────┼──────────────┼──────────────┼──────────────┼─────────┘
         │              │              │              │              │
         ▼              ▼              ▼              ▼              ▼
-┌──────────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────┐ ┌────────────┐
-│   SUPABASE   │ │   N8N    │ │  STRIPE  │ │   OPENAI     │ │  PINECONE  │
-│  • Auth      │ │ Webhooks │ │ Billing  │ │  GPT-4o-mini │ │ Vector DB  │
-│  • Database  │ │ • Search │ │ Payments │ │  Embeddings  │ │ 1536 dims  │
-│  • Storage   │ │ • Scrape │ │          │ │  text-emb-3  │ │            │
-│  • RLS       │ │ • Apify  │ │          │ │              │ │            │
-└──────────────┘ └──────────┘ └──────────┘ └──────────────┘ └────────────┘
+┌──────────────┐ ┌────────────────┐ ┌──────────┐ ┌──────────────┐ ┌────────────┐
+│   SUPABASE   │ │  N8N (Docker)  │ │  STRIPE  │ │   OPENAI     │ │  PINECONE  │
+│  • Auth      │ │  • Webhooks    │ │ Billing  │ │  GPT-4o-mini │ │ Vector DB  │
+│  • Database  │ │  • Search      │ │ Payments │ │  Embeddings  │ │ 1536 dims  │
+│  • Storage   │ │  • Scrape      │ │          │ │  text-emb-3  │ │            │
+│  • RLS       │ │  • Apify       │ │          │ │              │ │            │
+│              │ │  + PostgreSQL  │ │          │ │              │ │            │
+└──────────────┘ └────────────────┘ └──────────┘ └──────────────┘ └────────────┘
 ```
 
 ### 3-Tier Fallback Architecture
@@ -248,8 +251,8 @@ CareerAgWebApp/
 |-------------|---------|---------|
 | Node.js | 18+ | JavaScript runtime |
 | npm | 9+ | Package manager |
+| Docker Desktop | Latest | Runs n8n + PostgreSQL containers for workflow automation |
 | Supabase CLI | Latest | Local database development |
-| n8n | Latest | Workflow automation (optional for dev) |
 
 ### API Keys Required
 
@@ -349,11 +352,24 @@ Downloads the uploaded CV, extracts text from PDF, uses an AI Agent with OpenAI 
 
 ### Workflow Setup
 
-1. Start an n8n instance (`npx n8n` or use n8n Cloud)
-2. Import the workflow JSON files from [`docs/n8n/`](docs/n8n/)
-3. Configure credentials (Supabase, OpenAI, Apify)
-4. Activate the workflows and note the webhook URLs
-5. Set `N8N_WEBHOOK_BASE_URL` in your environment variables
+n8n runs locally via **Docker**, alongside a dedicated PostgreSQL container for workflow persistence. The setup uses Docker Desktop with two containers managed under a single stack:
+
+<p align="center">
+  <img src="docs/n8n/docker-n8n-setup.png" width="800" alt="Docker Desktop — n8n and PostgreSQL containers running"/>
+</p>
+
+<p align="center"><em>Docker Desktop showing the n8n container (n8nio/n8n on port 5678) and PostgreSQL container running side by side</em></p>
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and ensure it is running
+2. Start the n8n Docker stack (n8n + PostgreSQL containers):
+   ```bash
+   docker compose up -d
+   ```
+3. Access n8n at `http://localhost:5678`
+4. Import the workflow JSON files from [`docs/n8n/`](docs/n8n/)
+5. Configure credentials (Supabase, OpenAI, Apify)
+6. Activate the workflows and note the webhook URLs
+7. Set `N8N_WEBHOOK_BASE_URL=http://localhost:5678` in your environment variables
 
 > **Note:** The app works without n8n using the 3-tier fallback — direct OpenAI API calls handle CV parsing and matching when n8n is unavailable.
 
@@ -399,7 +415,7 @@ Downloads the uploaded CV, extracts text from PDF, uses an AI Agent with OpenAI 
 | **Stripe** | Register webhook at `https://<your-domain>/api/stripe/webhook` for `checkout.session.completed` and `customer.subscription.*` events |
 | **Supabase** | Verify RLS policies are active; add Vercel domain to Auth redirect URLs |
 | **Pinecone** | Ensure index exists with 1536 dimensions (for `text-embedding-3-small`) |
-| **n8n** | Deploy instance, import workflows, set webhook URLs, configure Apify credentials |
+| **n8n** | Deploy Docker containers (`docker compose up -d`), import workflows, set webhook URLs, configure Apify credentials |
 
 ---
 
@@ -507,6 +523,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Pinecone](https://pinecone.io) for vector search and semantic matching
 - [Stripe](https://stripe.com) for subscription billing
 - [n8n](https://n8n.io) for workflow automation
+- [Docker](https://www.docker.com) for containerized n8n and PostgreSQL
 - [shadcn/ui](https://ui.shadcn.com) for accessible UI components
 - [Vercel](https://vercel.com) for seamless deployment
 
