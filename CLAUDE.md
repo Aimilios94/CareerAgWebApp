@@ -164,10 +164,10 @@ Required in `.env.local`:
 3. **Recent Matches:** Fetch from database, empty states
 
 ### Reference Files
-- `plan.md` - Full implementation checklist
-- `PRD.md` - Product requirements
-- `context.md` - Architecture diagrams
-- `n8n-workflow-code/` - n8n workflow JSON files (need to make dynamic)
+- `specs/plan.md` - Full implementation checklist
+- `specs/PRD.md` - Product requirements
+- `specs/context.md` - Architecture diagrams
+- `docs/n8n/` - n8n workflow JSON files (need to make dynamic)
 
 
 # Rule: Verification-Led Development (VLD)
