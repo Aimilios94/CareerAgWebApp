@@ -26,15 +26,15 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        192,
-        80
+        208,
+        96
       ],
       "id": "e55bbd40-6281-4230-8d8c-e89adbbff2fa"
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={\n  \"success\": true,\n  \"matches\": {{$json}}\n}",
+        "responseBody": "={{ JSON.stringify({ success: true, matches: $input.all().map(i =>       \n  i.json) }) }}",
         "options": {}
       },
       "name": "Respond to App",
@@ -53,8 +53,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -80,
-        480
+        -96,
+        464
       ],
       "id": "59f61e4e-4b9a-473e-bec6-0eb53c45c92e",
       "name": "Edit Fields"
@@ -67,8 +67,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        160,
-        512
+        144,
+        480
       ],
       "id": "a8010e12-530f-4b44-af92-57552461a6b0"
     },
@@ -80,10 +80,11 @@
       "typeVersion": 3.4,
       "position": [
         -64,
-        96
+        80
       ],
       "id": "5ef89b10-4919-43f6-85e4-6b2c8397a8fa",
-      "name": "Edit Fields1"
+      "name": "Edit Fields1",
+      "disabled": true
     },
     {
       "parameters": {},
@@ -99,7 +100,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:3000/api/webhooks/n8n",
+        "url": "http://host.docker.internal:3000/api/webhooks/n8n",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -111,13 +112,13 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n    \"type\": \"job-matches\",\n    \"payload\": {\n      \"searchId\": \"{{ $('Webhook').first().json.body.searchId }}\",\n      \"userId\": \"{{ $('Webhook').first().json.body.userId }}\",\n      \"matches\": {{ $json }}\n    }\n  }",
+        "jsonBody": "={{ JSON.stringify({ type: \"job-matches\", payload: { searchId:\n  $('Webhook').first().json['body']['searchId'], userId:\n  $('Webhook').first().json['body']['userId'], matches:\n  $input.all().map(function(i) { return i.json }) } }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        912,
+        944,
         336
       ],
       "id": "df49fa7e-86de-4b63-ae14-cd4799362dcf",
@@ -131,8 +132,8 @@
       "type": "@apify/n8n-nodes-apify.apify",
       "typeVersion": 1,
       "position": [
-        -336,
-        112
+        -320,
+        96
       ],
       "id": "57cfd500-fbe7-4282-b901-d2d4e04b8b40",
       "name": "Get dataset items1",
@@ -141,7 +142,8 @@
           "id": "QwDf6ttZYrhJGZu2",
           "name": "Apify account"
         }
-      }
+      },
+      "disabled": true
     },
     {
       "parameters": {
@@ -161,7 +163,8 @@
           "id": "QwDf6ttZYrhJGZu2",
           "name": "Apify account"
         }
-      }
+      },
+      "disabled": true
     },
     {
       "parameters": {
@@ -171,14 +174,13 @@
           "mode": "list",
           "cachedResultName": "Indeed Scraper (misceres/indeed-scraper)",
           "cachedResultUrl": "https://console.apify.com/actors/hMvNSpz3JnHgl5jkh/input"
-        },
-        "timeout": {}
+        }
       },
       "type": "@apify/n8n-nodes-apify.apify",
       "typeVersion": 1,
       "position": [
-        -608,
-        432
+        -560,
+        464
       ],
       "id": "162e2c4c-c6fb-4ac7-a77b-17894aeeac23",
       "name": "IndeedJobs",
@@ -193,12 +195,12 @@
       "parameters": {
         "actorId": {
           "__rl": true,
-          "value": "nopnOEWIYjLQfBqEO",
+          "value": "RIGGeqD6RqKmlVoQU",
           "mode": "list",
-          "cachedResultName": "Google Jobs Scraper (epctex/google-jobs-scraper)",
-          "cachedResultUrl": "https://console.apify.com/actors/nopnOEWIYjLQfBqEO/input"
+          "cachedResultName": "🏆 LinkedIn Jobs Scraper (valig/linkedin-jobs-scraper)",
+          "cachedResultUrl": "https://console.apify.com/actors/RIGGeqD6RqKmlVoQU/input"
         },
-        "timeout": {}
+        "customBody": "={}"
       },
       "type": "@apify/n8n-nodes-apify.apify",
       "typeVersion": 1,
@@ -207,7 +209,7 @@
         112
       ],
       "id": "e8091c37-6563-4984-9784-ddedb339f42a",
-      "name": "google Jobs",
+      "name": "Linkedin Job Scraper",
       "credentials": {
         "apifyApi": {
           "id": "QwDf6ttZYrhJGZu2",
@@ -233,7 +235,7 @@
       "main": [
         [
           {
-            "node": "google Jobs",
+            "node": "Linkedin Job Scraper",
             "type": "main",
             "index": 0
           },
@@ -333,7 +335,7 @@
         ]
       ]
     },
-    "google Jobs": {
+    "Linkedin Job Scraper": {
       "main": [
         [
           {
@@ -350,7 +352,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "61ac21ba-87ee-4066-94b0-d79b909daaf7",
+  "versionId": "ebb3d02e-b475-41e4-9f4f-2a07caa0c2dd",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "97cdaab89af73ebd5970b4d23e9d1859d7eb3b935c78db3eb6127ddba5b4902d"

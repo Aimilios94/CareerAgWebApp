@@ -32,6 +32,9 @@ Thumbs.db
 *.png
 *.jpg
 
+# allow n8n workflow screenshots
+!docs/n8n/*.png
+
 # temp / junk files
 nul
 npm

@@ -29,6 +29,7 @@
   <a href="#live-demo">Demo</a> •
   <a href="#tech-stack">Tech Stack</a> •
   <a href="#architecture">Architecture</a> •
+  <a href="#n8n-workflows">n8n Workflows</a> •
   <a href="#getting-started">Getting Started</a> •
   <a href="#deployment">Deployment</a> •
   <a href="#license">License</a>
@@ -225,11 +226,12 @@ CareerAgWebApp/
 │   └── types/                      # TypeScript types (Supabase generated)
 │
 ├── __tests__/                      # Test suites (541 tests)
+├── docs/
+│   ├── n8n/                        # n8n workflow JSONs, screenshots & environment docs
+│   └── screenshots/                # UI screenshots (desktop, tablet, mobile)
+├── specs/                          # PRD, plan, context, guidelines, PROGRESS
 ├── .env.example                    # Environment variable template
 ├── CLAUDE.md                       # AI assistant guidelines
-├── PRD.md                          # Product requirements document
-├── plan.md                         # Implementation checklist
-├── context.md                      # Architecture documentation
 ├── package.json                    # Dependencies & scripts
 ├── tailwind.config.ts              # Tailwind configuration
 ├── tsconfig.json                   # TypeScript configuration
@@ -290,18 +292,65 @@ npm run test:e2e     # Run Playwright E2E tests
 
 ---
 
-## n8n Workflow Setup
+## n8n Workflows
 
-The app uses n8n for job search orchestration and scraping automation. Two workflow types are used:
+The app uses two n8n workflows for backend automation. Import the JSON files from [`docs/n8n/`](docs/n8n/) into your n8n instance.
 
-| Workflow | Purpose | Trigger |
-|----------|---------|---------|
-| **Job Search** | Scrapes job boards via Apify, stores results in Supabase | `POST /webhook/job-search` |
-| **CV Processing** | Parses CV, generates embeddings, stores in Pinecone | `POST /webhook/cv-process` |
+### Job Search Pipeline (Apify)
 
-**Setup Steps:**
+Scrapes LinkedIn and Indeed job boards via Apify, merges and formats results, then sends them back to the app via HTTP callback.
+
+<p align="center">
+  <img src="docs/n8n/job-search-workflow.png" width="800" alt="Job Search Pipeline — n8n workflow editor"/>
+</p>
+
+<p align="center"><em>Webhook → Apify Scrapers (LinkedIn + Indeed) → Format & Merge → Respond to App</em></p>
+
+| Stage | Nodes | Description |
+|-------|-------|-------------|
+| **Trigger** | Webhook | Receives POST from the app with search query and filters |
+| **Scraping** | LinkedIn Job Scraper, IndeedJobs | Parallel Apify actors scrape both job boards |
+| **Processing** | Get Dataset Items → Edit Fields → Format Results | Extracts and normalizes job data from each source |
+| **Output** | Merge → Respond to App → HTTP Request | Combines results and sends back to the app callback URL |
+
+<p align="center">
+  <img src="docs/n8n/job-search-execution.png" width="800" alt="Job Search Pipeline — successful execution"/>
+</p>
+
+<p align="center"><em>Successful execution — completed in ~1m 20s with results from both job boards</em></p>
+
+---
+
+### CV Pipeline — Parse PDF
+
+Downloads the uploaded CV, extracts text from PDF, uses an AI Agent with OpenAI to parse skills and experience into structured JSON, then sends the result back to the app.
+
+<p align="center">
+  <img src="docs/n8n/cv-pipeline-workflow.png" width="800" alt="CV Pipeline — n8n workflow editor"/>
+</p>
+
+<p align="center"><em>Webhook → Download File → Extract from PDF → AI Agent (OpenAI) → Build Payload → Send to App</em></p>
+
+| Stage | Nodes | Description |
+|-------|-------|-------------|
+| **Trigger** | Webhook | Receives POST with CV file URL from the app |
+| **Download** | Download File | Fetches the PDF from Supabase Storage |
+| **Extract** | Extract from File | Extracts raw text content from the PDF |
+| **AI Parse** | AI Agent + OpenAI Chat Model | GPT-4o parses CV text into structured JSON (skills, experience, education) |
+| **Output** | Build Callback Payload → Send to App | Formats and sends parsed data back to the app |
+
+<p align="center">
+  <img src="docs/n8n/cv-pipeline-execution.png" width="800" alt="CV Pipeline — successful execution"/>
+</p>
+
+<p align="center"><em>Successful execution — CV parsed in ~14s, extracting skills, experience, and education</em></p>
+
+---
+
+### Workflow Setup
+
 1. Start an n8n instance (`npx n8n` or use n8n Cloud)
-2. Import the workflow JSON files from the repository
+2. Import the workflow JSON files from [`docs/n8n/`](docs/n8n/)
 3. Configure credentials (Supabase, OpenAI, Apify)
 4. Activate the workflows and note the webhook URLs
 5. Set `N8N_WEBHOOK_BASE_URL` in your environment variables
