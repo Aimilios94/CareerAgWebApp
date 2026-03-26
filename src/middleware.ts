@@ -58,8 +58,9 @@ export async function middleware(request: NextRequest) {
 
   // Protect dashboard routes
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
-    // DEV BYPASS: Allow access with dev_bypass cookie (non-production only)
-    const devBypass = process.env.NODE_ENV !== 'production' && request.cookies.get('dev_bypass')?.value === 'true'
+    // BYPASS: Allow access with dev_bypass cookie when bypass is enabled or in dev mode
+    const bypassEnabled = process.env.NEXT_PUBLIC_AUTH_BYPASS === 'true' || process.env.NODE_ENV !== 'production'
+    const devBypass = bypassEnabled && request.cookies.get('dev_bypass')?.value === 'true'
 
     if (!user && !devBypass) {
       const loginUrl = new URL('/login', request.url)

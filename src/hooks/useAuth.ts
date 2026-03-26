@@ -13,6 +13,18 @@ interface AuthState {
   subscription: Tables<'subscriptions'> | null
   loading: boolean
   isPro: boolean
+  isDevBypass: boolean
+}
+
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'))
+  return match ? decodeURIComponent(match[2]) : null
+}
+
+function isDevBypassActive(): boolean {
+  const bypassEnabled = process.env.NEXT_PUBLIC_AUTH_BYPASS === 'true' || process.env.NODE_ENV !== 'production'
+  return bypassEnabled && getCookie('dev_bypass') === 'true'
 }
 
 export function useAuth() {
@@ -24,6 +36,7 @@ export function useAuth() {
     subscription: null,
     loading: true,
     isPro: false,
+    isDevBypass: false,
   })
 
   const fetchUserData = useCallback(async (userId: string) => {
@@ -55,6 +68,50 @@ export function useAuth() {
           subscription,
           loading: false,
           isPro: subscription?.plan_type === 'pro',
+          isDevBypass: false,
+        })
+      } else if (isDevBypassActive()) {
+        // Dev bypass mode: provide mock user data for Sidebar and other components
+        const devEmail = getCookie('dev_bypass_email') || 'testuser@test.com'
+        const mockUser = {
+          id: '00000000-0000-0000-0000-000000000001',
+          email: devEmail,
+          app_metadata: {},
+          user_metadata: { full_name: devEmail.split('@')[0] },
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
+        } as unknown as User
+
+        const mockProfile = {
+          id: '00000000-0000-0000-0000-000000000001',
+          full_name: devEmail.split('@')[0],
+          job_title: 'Developer (Test Mode)',
+          skills: null,
+          avatar_url: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as Tables<'profiles'>
+
+        const mockSubscription = {
+          id: '00000000-0000-0000-0000-000000000002',
+          user_id: '00000000-0000-0000-0000-000000000001',
+          plan_type: 'free',
+          stripe_customer_id: null,
+          stripe_subscription_id: null,
+          current_period_start: null,
+          current_period_end: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as Tables<'subscriptions'>
+
+        setState({
+          user: mockUser,
+          session: null,
+          profile: mockProfile,
+          subscription: mockSubscription,
+          loading: false,
+          isPro: false,
+          isDevBypass: true,
         })
       } else {
         setState({
@@ -64,6 +121,7 @@ export function useAuth() {
           subscription: null,
           loading: false,
           isPro: false,
+          isDevBypass: false,
         })
       }
     }
@@ -81,7 +139,11 @@ export function useAuth() {
             subscription,
             loading: false,
             isPro: subscription?.plan_type === 'pro',
+            isDevBypass: false,
           })
+        } else if (isDevBypassActive()) {
+          // Keep dev bypass state during auth state changes
+          return
         } else {
           setState({
             user: null,
@@ -90,12 +152,12 @@ export function useAuth() {
             subscription: null,
             loading: false,
             isPro: false,
+            isDevBypass: false,
           })
         }
 
-        if (event === 'SIGNED_OUT') {
-          router.push('/login')
-        }
+        // Note: SIGNED_OUT redirect is handled by signOut() via window.location.replace
+        // Using router.push here would cause an RSC fetch race condition
       }
     )
 
@@ -105,10 +167,14 @@ export function useAuth() {
   }, [fetchUserData, router])
 
   const signOut = useCallback(async () => {
+    // Clear dev bypass cookies
+    document.cookie = 'dev_bypass=; path=/; max-age=0'
+    document.cookie = 'dev_bypass_email=; path=/; max-age=0'
+
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/login')
-  }, [router])
+    window.location.replace('/login')
+  }, [])
 
   const refreshProfile = useCallback(async () => {
     if (!state.user) return
