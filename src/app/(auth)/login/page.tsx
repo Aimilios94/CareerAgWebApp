@@ -134,11 +134,11 @@ function LoginForm() {
               id="password"
               type="password"
               autoComplete="current-password"
-              placeholder={isDevMode && isTestEmail ? 'Not required for test emails' : '••••••••'}
+              placeholder={bypassEnabled ? 'Not required in bypass mode' : '••••••••'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required={!(isDevMode && isTestEmail)}
-              disabled={loading || (isDevMode && isTestEmail)}
+              required={!bypassEnabled}
+              disabled={loading || bypassEnabled}
               className="bg-black/20 border-white/10 text-white focus:border-accent focus:ring-accent/20 placeholder:text-zinc-600 h-11"
             />
           </div>
