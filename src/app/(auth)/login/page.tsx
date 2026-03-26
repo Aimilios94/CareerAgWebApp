@@ -18,18 +18,22 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  const bypassEnabled = process.env.NEXT_PUBLIC_AUTH_BYPASS === 'true'
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    // DEV BYPASS: Allow test login without real credentials (non-production only)
-    if (process.env.NODE_ENV !== 'production' && email.toLowerCase().includes('test')) {
-      await new Promise(resolve => setTimeout(resolve, 500))
+    // BYPASS: Allow login with any email without real credentials when bypass is enabled
+    if (bypassEnabled && email) {
       // Set a cookie to bypass middleware protection
       document.cookie = 'dev_bypass=true; path=/; max-age=86400'
-      router.push(redirect)
-      router.refresh()
+      // Store the email for display purposes
+      document.cookie = `dev_bypass_email=${encodeURIComponent(email)}; path=/; max-age=86400`
+      // Small delay so the user sees the loading state
+      await new Promise(resolve => setTimeout(resolve, 300))
+      window.location.href = redirect
       return
     }
 
@@ -83,6 +87,13 @@ function LoginForm() {
 
       <div className="bg-zinc-900/40 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-xl">
         <form onSubmit={handleEmailLogin} className="space-y-4">
+          {bypassEnabled && (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+              Bypass mode: Any email bypasses authentication
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
@@ -97,6 +108,7 @@ function LoginForm() {
             <Input
               id="email"
               type="email"
+              autoComplete="email"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -121,11 +133,12 @@ function LoginForm() {
             <Input
               id="password"
               type="password"
-              placeholder="••••••••"
+              autoComplete="current-password"
+              placeholder={isDevMode && isTestEmail ? 'Not required for test emails' : '••••••••'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
+              required={!(isDevMode && isTestEmail)}
+              disabled={loading || (isDevMode && isTestEmail)}
               className="bg-black/20 border-white/10 text-white focus:border-accent focus:ring-accent/20 placeholder:text-zinc-600 h-11"
             />
           </div>
